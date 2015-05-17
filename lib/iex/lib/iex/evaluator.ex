@@ -85,26 +85,17 @@ defmodule IEx.Evaluator do
   # https://github.com/elixir-lang/elixir/issues/1089 for discussion.
   @break_trigger '#iex:break\n'
 
-  defp can_repipe?(code, history) do
-    Regex.match?(~r/^\s*\|>/, code) && IEx.History.State.nth(history, -1)
-  end
-
-  defp repipe(last_result, old_code) do
-    "#{inspect last_result} #{String.strip old_code}"
-  end
-
   defp eval(code, state, history) do
     try do
       do_eval(String.to_char_list(code), state, history)
     catch
       kind, error = %{description: "syntax error before: '|>'"} ->
         if can_repipe?(code, history) do
-          new_code =
-            history
-            |> IEx.History.nth(-1)
-            |> elem(2)
-            |> repipe(code)
-          eval(new_code, state, history)
+          history
+          |> IEx.History.nth(-1)
+          |> elem(2)
+          |> repipe(code)
+          |> eval(state, history)
         else
           print_error(kind, error, System.stacktrace)
           {%{state | cache: ''}, history}
@@ -130,6 +121,14 @@ defmodule IEx.Evaluator do
     handle_eval(Code.string_to_quoted(code, [line: line, file: "iex"]), code, line, state, history)
   after
     Process.delete(:iex_history)
+  end
+
+  defp can_repipe?(code, history) do
+    Regex.match?(~r/^\s*\|>/, code) && IEx.History.State.nth(history, -1)
+  end
+
+  defp repipe(last_result, old_code) do
+    "#{inspect last_result} #{String.strip old_code}"
   end
 
   defp handle_eval({:ok, forms}, code, line, state, history) do
