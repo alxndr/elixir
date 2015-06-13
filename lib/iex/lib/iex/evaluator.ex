@@ -128,6 +128,7 @@ defmodule IEx.Evaluator do
   end
 
   defp repipe(last_result, old_code) do
+    # TODO manipulate AST of old_code so it's effectively `last_result |> old_code`
     "#{inspect last_result} #{String.strip old_code}"
   end
 
